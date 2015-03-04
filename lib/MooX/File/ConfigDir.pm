@@ -3,8 +3,9 @@ package MooX::File::ConfigDir;
 use strict;
 use warnings;
 
-our $VERSION = "0.004";
+our $VERSION = "0.005";
 
+use Carp qw/croak/;
 use Scalar::Util qw(blessed);
 use File::ConfigDir ();
 use namespace::clean;
@@ -12,18 +13,19 @@ use namespace::clean;
 use Moo::Role;
 
 has 'config_identifier' => (
-                             is => 'lazy',
-                           );
+    is => 'lazy',
+);
 
-sub _build_config_identifier {}
+sub _build_config_identifier { }
 
 sub _fetch_file_config_dir
 {
     my ( $self, $attr, $params ) = @_;
-    my $app_name = blessed($self) ? $self->config_identifier
-      : ( defined $params and defined $params->{config_identifier} ) ? $params->{config_identifier}
-      : $self->can('_build_config_identifier') ? $self->_build_config_identifier($params)
-      :                                          undef;
+    croak "either \$self or \$params must be valid" unless blessed $self or "HASH" eq ref $params;
+    my $app_name =
+        blessed($self)                       ? $self->config_identifier
+      : defined $params->{config_identifier} ? $params->{config_identifier}
+      :                                        $self->_build_config_identifier($params);
     my @app_names = $app_name ? ($app_name) : ();
     my $sub       = File::ConfigDir->can($attr);
     my @dirs      = &{$sub}(@app_names);
@@ -31,25 +33,27 @@ sub _fetch_file_config_dir
 }
 
 has singleapp_cfg_dir => (
-                   is      => 'ro',
-                   lazy    => 1,
-                   builder => sub { [ File::ConfigDir::singleapp_cfg_dir ] },
+    is      => 'ro',
+    lazy    => 1,
+    clearer => 1,
+    builder => sub { [File::ConfigDir::singleapp_cfg_dir] },
 );
 
 my @file_config_dir_attrs = (
-                              qw(system_cfg_dir xdg_config_dirs desktop_cfg_dir),
-                              qw(core_cfg_dir site_cfg_dir vendor_cfg_dir ),
-                              qw(local_cfg_dir locallib_cfg_dir here_cfg_dir user_cfg_dir),
-                              qw(xdg_config_home config_dirs)
-                            );
+    qw(system_cfg_dir xdg_config_dirs desktop_cfg_dir),
+    qw(core_cfg_dir site_cfg_dir vendor_cfg_dir ),
+    qw(local_cfg_dir locallib_cfg_dir here_cfg_dir user_cfg_dir),
+    qw(xdg_config_home config_dirs)
+);
 
 foreach my $attr (@file_config_dir_attrs)
 {
     has $attr => (
-                   is      => 'ro',
-                   lazy    => 1,
-                   builder => sub { my $self = shift; $self->_fetch_file_config_dir( $attr, @_ ) },
-                 );
+        is      => 'ro',
+        lazy    => 1,
+        clearer => 1,
+        builder => sub { my $self = shift; $self->_fetch_file_config_dir( $attr, @_ ) },
+    );
 }
 
 =head1 NAME
@@ -171,7 +175,7 @@ Jens Rehsack, C<< <rehsack at cpan.org> >>
 =head1 BUGS
 
 Please report any bugs or feature requests to
-C<bug-moox-file-configdir at rt.cpan.org>, or through the web interface at
+C<bug-MooX-File-ConfigDir at rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=MooX-File-ConfigDir>.
 I will be notified, and then you'll automatically be notified of progress
 on your bug as I make changes.
@@ -206,7 +210,7 @@ L<http://search.cpan.org/dist/MooX-File-ConfigDir/>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2013-2014 Jens Rehsack.
+Copyright 2013-2015 Jens Rehsack.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
